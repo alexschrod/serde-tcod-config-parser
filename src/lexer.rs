@@ -9,10 +9,10 @@ pub enum Token {
     #[regex = "\"[^\"]*\""]
     Text,
 
-    #[regex = "'(\\\\x[0-9a-fA-F]+|\\\\[0-7]+|\\\\(n|t|r|\\\\|\"|'))'"]
+    #[regex = "'(\\\\x[0-9a-fA-F]+|\\\\[0-7]+|\\\\(n|t|r|\\\\|\"|')|.)'"]
     Char,
 
-    #[regex = "-?([0-9]*\\.[0-9]+|[0-9]+\\.[0-9]*)"]
+    #[regex = "(-|\\+)?([0-9]*\\.[0-9]+|[0-9]+\\.[0-9]*)((E|e)(-|\\+)?[0-9]+)?"]
     Float,
 
     #[regex = "-?0(x|X)[0-9a-fA-F]+"]
@@ -20,9 +20,6 @@ pub enum Token {
 
     #[regex = "-?[0-9]+"]
     Integer,
-
-    #[regex = "(struct|bool|char|int|float|string|color|dice)_t"]
-    Type,
 
     #[regex = "[a-zA-Z_]+"]
     Identifier,
@@ -53,20 +50,34 @@ pub enum Token {
     #[callback = "ignore_comments"]
     #[error]
     UnexpectedToken,
-    UnexpectedEndOfProgram,
+    UnclosedMultilineComment,
 }
 
 fn ignore_comments<'source, Src: Source<'source>>(lex: &mut Lexer<Token, Src>) {
     use logos::Slice;
 
     if lex.slice().as_bytes() == b"/*" {
+        let mut level = 1;
         loop {
             match lex.read() {
-                None => return lex.token = Token::UnexpectedEndOfProgram,
+                None => return lex.token = Token::UnclosedMultilineComment,
                 Some(b'*') => {
                     if lex.read_at(1) == Some(b'/') {
                         lex.bump(2);
-                        break;
+                        level -= 1;
+                        if level == 0 {
+                            break;
+                        }
+                    } else {
+                        lex.bump(1);
+                    }
+                }
+                Some(b'/') => {
+                    if lex.read_at(1) == Some(b'*') {
+                        lex.bump(2);
+                        level += 1;
+                    } else {
+                        lex.bump(1);
                     }
                 }
                 _ => lex.bump(1),

@@ -11,3 +11,4 @@ serde="1"
 serde_derive = "1.0"
 snafu="0.5"
 logos = { git="https://github.com/maciejhirsz/logos" }
+paste = "0.1"
