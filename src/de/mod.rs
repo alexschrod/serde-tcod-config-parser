@@ -13,8 +13,8 @@ mod macros {
     macro_rules! unexpected_token {
         ($l: expr, $e: expr) => {
             Err(Error::UnexpectedToken {
-                token: $l.token,
                 value: $l.slice().to_string(),
+                token_type: format!("{:?}", $l.token),
                 range: $l.range(),
                 expected: $e,
             })
@@ -45,42 +45,71 @@ use struct_sequence_access::*;
 mod primitive_sequence_access;
 use primitive_sequence_access::*;
 
+/// This type represents all possible errors that can occur when deserializing libtcod config files.
 #[derive(Debug, Snafu)]
 pub enum Error {
-    Io {
-        source: std::io::Error,
-    },
+    /// An error reported to us by `serde` itself.
+    #[snafu(display("An error was reported by serde: {}", msg))]
     Serde {
+        /// The message `serde` provided.
         msg: String,
     },
+    /// A token that was unexpected was encountered.
+    #[snafu(display(
+        "Encountered token \"{}\" ({}) at position {:?}. Expected {}.",
+        value,
+        token_type,
+        range,
+        expected
+    ))]
     UnexpectedToken {
-        token: Token,
+        /// The value of the unexpected token.
         value: String,
+        /// The type of token we (thought we) found
+        token_type: String,
+        /// The location in the source string where the token was encountered.
         range: Range<usize>,
+        /// The token/value the deserializer was expecting at this location.
         expected: &'static str,
     },
+    /// A different struct than was expected was encountered.
     #[snafu(display("Found struct {}, expected struct {}", name, expected))]
     UnexpectedStruct {
+        /// The name of the encountered struct.
         name: String,
+        /// The expected name of the struct.
         expected: String,
     },
-    #[snafu(display("TCOD parser structs must have a 'name' field"))]
-    MissingName,
+    /// All structs must have an `instance_name` field. This field is used to hold the value within
+    /// `libtcod_struct_name "libtcod_instance_name" { ... }`. Structs without an instance name will
+    /// have their value set to `""`.
+    #[snafu(display("libtcod config structs must have an 'instance_name' field"))]
+    MissingInstanceName,
+    /// An invalid `char` representation was encountered.
     InvalidChar {
+        /// The cause of the invalid char.
         source: InvalidCharError,
     },
+    /// This format supports multi-line strings, but they are not necessarily contiguous, so if such
+    /// an non-contiguous variant is encountered on a string slice field, this error is returned.
     #[snafu(display("multi-line string is not supported for borrowed str fields"))]
     MultiLineStringOnBorrowedStr {
-        token: Token,
+        /// The value of the token where this error was triggered.
         value: String,
+        /// The location in the source string where the token was encountered.
         range: Range<usize>,
     },
 }
 
+/// This type represents all possible errors that can occur when deserializing the libtcod
+/// config file char type.
 #[derive(Debug, Snafu)]
 pub enum InvalidCharError {
+    /// A char represented as an integer could not be parsed.
     ParseInt { source: std::num::ParseIntError },
+    /// An invalid escape sequence was used.
     InvalidEscapeSequence { value: String },
+    /// Something not representable as a char was given.
     InvalidCharValue { value: String },
 }
 
@@ -95,23 +124,31 @@ impl DeError for Error {
     }
 }
 
+/// A re-declaration of `Result` that sets sensible defaults for `T` and `E`
 pub type Result<T = (), E = Error> = std::result::Result<T, E>;
 
-/// A convenience method for deserializing a type from a string.
-pub fn from_str<'de, T: de::Deserialize<'de>>(s: &'de str) -> Result<T, Error> {
-    T::deserialize(&mut Deserializer::new_from_str(s))
-}
-
+/// A structure that deserializes libtcod config file values into Rust values.
 pub struct Deserializer<'de> {
     lexer: Lexer<Token, &'de str>,
 }
 
 impl<'de> Deserializer<'de> {
-    pub fn new_from_str(source: &'de str) -> Self {
+    /// Create a libtcod config file deserializer from a `&str`.
+    ///
+    /// Typically it is more convenient to use the [`Deserializer::from_str`] function instead
+    ///
+    /// [`Deserializer::from_str`]: #method.from_str
+    pub fn new(source: &'de str) -> Self {
         use logos::Logos;
 
         let lexer = Token::lexer(source);
         Self { lexer }
+    }
+
+    /// Creates a libtcod config file deserializer from a `&str`.
+    #[allow(clippy::should_implement_trait)]
+    pub fn from_str<T: de::Deserialize<'de>>(s: &'de str) -> Result<T> {
+        T::deserialize(&mut Deserializer::new(s))
     }
 }
 
@@ -129,17 +166,16 @@ impl<'de: 'a, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
         map
         enum
         identifier
-        ignored_any
     }
 
-    fn deserialize_any<V>(self, _visitor: V) -> Result<<V as Visitor<'de>>::Value, Self::Error>
+    fn deserialize_any<V>(self, _visitor: V) -> Result<<V as Visitor<'de>>::Value>
     where
         V: Visitor<'de>,
     {
         unimplemented!("not supported")
     }
 
-    fn deserialize_bool<V>(self, visitor: V) -> Result<<V as Visitor<'de>>::Value, Self::Error>
+    fn deserialize_bool<V>(self, visitor: V) -> Result<<V as Visitor<'de>>::Value>
     where
         V: Visitor<'de>,
     {
@@ -151,77 +187,77 @@ impl<'de: 'a, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
         }
     }
 
-    fn deserialize_i8<V>(self, visitor: V) -> Result<<V as Visitor<'de>>::Value, Self::Error>
+    fn deserialize_i8<V>(self, visitor: V) -> Result<<V as Visitor<'de>>::Value>
     where
         V: Visitor<'de>,
     {
         visit_number!(self.lexer, Integer, i8)
     }
 
-    fn deserialize_i16<V>(self, visitor: V) -> Result<<V as Visitor<'de>>::Value, Self::Error>
+    fn deserialize_i16<V>(self, visitor: V) -> Result<<V as Visitor<'de>>::Value>
     where
         V: Visitor<'de>,
     {
         visit_number!(self.lexer, Integer, i16)
     }
 
-    fn deserialize_i32<V>(self, visitor: V) -> Result<<V as Visitor<'de>>::Value, Self::Error>
+    fn deserialize_i32<V>(self, visitor: V) -> Result<<V as Visitor<'de>>::Value>
     where
         V: Visitor<'de>,
     {
         visit_number!(self.lexer, Integer, i32)
     }
 
-    fn deserialize_i64<V>(self, visitor: V) -> Result<<V as Visitor<'de>>::Value, Self::Error>
+    fn deserialize_i64<V>(self, visitor: V) -> Result<<V as Visitor<'de>>::Value>
     where
         V: Visitor<'de>,
     {
         visit_number!(self.lexer, Integer, i64)
     }
 
-    fn deserialize_u8<V>(self, visitor: V) -> Result<<V as Visitor<'de>>::Value, Self::Error>
+    fn deserialize_u8<V>(self, visitor: V) -> Result<<V as Visitor<'de>>::Value>
     where
         V: Visitor<'de>,
     {
         visit_number!(self.lexer, Integer, u8)
     }
 
-    fn deserialize_u16<V>(self, visitor: V) -> Result<<V as Visitor<'de>>::Value, Self::Error>
+    fn deserialize_u16<V>(self, visitor: V) -> Result<<V as Visitor<'de>>::Value>
     where
         V: Visitor<'de>,
     {
         visit_number!(self.lexer, Integer, u16)
     }
 
-    fn deserialize_u32<V>(self, visitor: V) -> Result<<V as Visitor<'de>>::Value, Self::Error>
+    fn deserialize_u32<V>(self, visitor: V) -> Result<<V as Visitor<'de>>::Value>
     where
         V: Visitor<'de>,
     {
         visit_number!(self.lexer, Integer, u32)
     }
 
-    fn deserialize_u64<V>(self, visitor: V) -> Result<<V as Visitor<'de>>::Value, Self::Error>
+    fn deserialize_u64<V>(self, visitor: V) -> Result<<V as Visitor<'de>>::Value>
     where
         V: Visitor<'de>,
     {
         visit_number!(self.lexer, Integer, u64)
     }
 
-    fn deserialize_f32<V>(self, visitor: V) -> Result<<V as Visitor<'de>>::Value, Self::Error>
+    fn deserialize_f32<V>(self, visitor: V) -> Result<<V as Visitor<'de>>::Value>
     where
         V: Visitor<'de>,
     {
         visit_number!(self.lexer, Float, f32)
     }
 
-    fn deserialize_f64<V>(self, visitor: V) -> Result<<V as Visitor<'de>>::Value, Self::Error>
+    fn deserialize_f64<V>(self, visitor: V) -> Result<<V as Visitor<'de>>::Value>
     where
         V: Visitor<'de>,
     {
         visit_number!(self.lexer, Float, f64)
     }
 
-    fn deserialize_char<V>(self, visitor: V) -> Result<<V as Visitor<'de>>::Value, Self::Error>
+    fn deserialize_char<V>(self, visitor: V) -> Result<<V as Visitor<'de>>::Value>
     where
         V: Visitor<'de>,
     {
@@ -290,7 +326,7 @@ impl<'de: 'a, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
         }
     }
 
-    fn deserialize_str<V>(self, visitor: V) -> Result<<V as Visitor<'de>>::Value, Self::Error>
+    fn deserialize_str<V>(self, visitor: V) -> Result<<V as Visitor<'de>>::Value>
     where
         V: Visitor<'de>,
     {
@@ -301,7 +337,6 @@ impl<'de: 'a, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
 
             if self.lexer.token == Token::Text {
                 return Err(Error::MultiLineStringOnBorrowedStr {
-                    token: self.lexer.token,
                     value: self.lexer.slice().to_string(),
                     range: self.lexer.range(),
                 });
@@ -313,7 +348,7 @@ impl<'de: 'a, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
         }
     }
 
-    fn deserialize_string<V>(self, visitor: V) -> Result<<V as Visitor<'de>>::Value, Self::Error>
+    fn deserialize_string<V>(self, visitor: V) -> Result<<V as Visitor<'de>>::Value>
     where
         V: Visitor<'de>,
     {
@@ -331,14 +366,14 @@ impl<'de: 'a, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
         visitor.visit_string(result)
     }
 
-    fn deserialize_option<V>(self, visitor: V) -> Result<<V as Visitor<'de>>::Value, Self::Error>
+    fn deserialize_option<V>(self, visitor: V) -> Result<<V as Visitor<'de>>::Value>
     where
         V: Visitor<'de>,
     {
         visitor.visit_some(self)
     }
 
-    fn deserialize_seq<V>(mut self, visitor: V) -> Result<<V as Visitor<'de>>::Value, Self::Error>
+    fn deserialize_seq<V>(mut self, visitor: V) -> Result<<V as Visitor<'de>>::Value>
     where
         V: Visitor<'de>,
     {
@@ -364,12 +399,12 @@ impl<'de: 'a, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
         type_name: &'static str,
         fields: &'static [&'static str],
         visitor: V,
-    ) -> Result<<V as Visitor<'de>>::Value, Self::Error>
+    ) -> Result<<V as Visitor<'de>>::Value>
     where
         V: Visitor<'de>,
     {
-        if !fields.contains(&"name") {
-            return Err(Error::MissingName);
+        if !fields.contains(&"instance_name") {
+            return Err(Error::MissingInstanceName);
         }
 
         if self.lexer.token != Token::Identifier {
@@ -396,7 +431,7 @@ impl<'de: 'a, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
             }
             Token::BraceOpen => {}
             _ => {
-                return unexpected_token!(self.lexer, "\"<name>\" or {");
+                return unexpected_token!(self.lexer, "\"<instance_name>\" or {");
             }
         }
 
@@ -407,5 +442,10 @@ impl<'de: 'a, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
         self.lexer.advance();
 
         visitor.visit_map(StructInternalAccess::new(&mut self, lex_name.unwrap_or("")))
+    }
+
+    fn deserialize_ignored_any<V>(mut self, visitor: V) -> Result<<V as Visitor<'de>>::Value, Self::Error> where
+        V: Visitor<'de> {
+        unimplemented!("Ignoring items currently not supported.")
     }
 }

@@ -1,5 +1,5 @@
 [package]
-name = "serde-tcod-parser"
+name = "serde-tcod-config-parser"
 version = "0.1.0"
 authors = ["Alexander Krivács Schrøder <alexschrod@gmail.com>"]
 edition = "2018"
@@ -10,5 +10,5 @@ edition = "2018"
 serde="1"
 serde_derive = "1.0"
 snafu="0.5"
-logos = { git="https://github.com/maciejhirsz/logos" }
+logos = "0.10.0-rc2"
 paste = "0.1"

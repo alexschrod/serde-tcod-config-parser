@@ -5,15 +5,15 @@ use serde::de::{self, IntoDeserializer};
 
 pub struct StructInternalAccess<'a, 'de> {
     de: &'a mut Deserializer<'de>,
-    name: Option<&'de str>,
+    instance_name: Option<&'de str>,
     lexer: Option<Lexer<Token, &'de str>>,
 }
 
 impl<'a, 'de> StructInternalAccess<'a, 'de> {
-    pub fn new(de: &'a mut Deserializer<'de>, name: &'de str) -> Self {
+    pub fn new(de: &'a mut Deserializer<'de>, instance_name: &'de str) -> Self {
         Self {
             de,
-            name: Some(name),
+            instance_name: Some(instance_name),
             lexer: None,
         }
     }
@@ -29,8 +29,8 @@ impl<'de: 'a, 'a> de::MapAccess<'de> for StructInternalAccess<'a, 'de> {
     where
         K: de::DeserializeSeed<'de>,
     {
-        if self.name.is_some() {
-            return seed.deserialize("name".into_deserializer()).map(Some);
+        if self.instance_name.is_some() {
+            return seed.deserialize("instance_name".into_deserializer()).map(Some);
         }
 
         if self.de.lexer.token == Token::BraceClose {
@@ -66,9 +66,8 @@ impl<'de: 'a, 'a> de::MapAccess<'de> for StructInternalAccess<'a, 'de> {
     where
         V: de::DeserializeSeed<'de>,
     {
-        if let Some(name) = self.name.take() {
-            //return seed.deserialize(name.into_deserializer());
-            return seed.deserialize(de::value::BorrowedStrDeserializer::new(name));
+        if let Some(instance_name) = self.instance_name.take() {
+            return seed.deserialize(de::value::BorrowedStrDeserializer::new(instance_name));
         }
 
         match self.de.lexer.token {

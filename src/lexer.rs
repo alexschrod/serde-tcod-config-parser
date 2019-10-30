@@ -2,7 +2,7 @@ use logos::internal::LexerInternal;
 use logos::{Lexer, Logos, Source};
 
 #[derive(Debug, PartialEq, Clone, Copy, Logos)]
-pub enum Token {
+pub(crate) enum Token {
     #[end]
     EndOfProgram,
 
@@ -21,7 +21,7 @@ pub enum Token {
     #[regex = "-?[0-9]+"]
     Integer,
 
-    #[regex = "[a-zA-Z_]+"]
+    #[regex = "[a-zA-Z][a-zA-Z0-9_]*"]
     Identifier,
 
     #[regex = "#[0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F]"]
