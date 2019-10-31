@@ -3,12 +3,16 @@ name = "serde-tcod-config-parser"
 version = "0.1.0"
 authors = ["Alexander Krivács Schrøder <alexschrod@gmail.com>"]
 edition = "2018"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+license = "MIT/Apache-2.0"
+description = "A best-effort implementation of the now deprecated libtcod config file parser functionality from libtcod"
+repository = "https://github.com/alexschrod/serde-tcod-config-parser"
+readme = "README.md"
+keywords = ["serde", "tcod", "libtcod", "serialization"]
+categories = ["encoding"]
 
 [dependencies]
 serde="1"
 serde_derive = "1.0"
-snafu="0.5"
+snafu = "0.5"
 logos = "0.10.0-rc2"
 paste = "0.1"
