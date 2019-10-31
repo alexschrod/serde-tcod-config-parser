@@ -444,7 +444,7 @@ impl<'de: 'a, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
         visitor.visit_map(StructInternalAccess::new(&mut self, lex_name.unwrap_or("")))
     }
 
-    fn deserialize_ignored_any<V>(mut self, visitor: V) -> Result<<V as Visitor<'de>>::Value, Self::Error> where
+    fn deserialize_ignored_any<V>(self, _visitor: V) -> Result<<V as Visitor<'de>>::Value, Self::Error> where
         V: Visitor<'de> {
         unimplemented!("Ignoring items currently not supported.")
     }
