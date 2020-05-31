@@ -22,12 +22,12 @@ mod macros {
     }
 
     macro_rules! visit_number {
-        ($l: expr, $to: ident, $ty: ident) => {
+        ($l: expr, $to: ident, $ty: ident, $visitor:ident) => {
             if $l.token == Token::$to {
                 paste::expr! {
                     let result = $l.slice().parse().unwrap();
                     $l.advance();
-                    visitor.[<visit_$ty>](result)
+                    $visitor.[<visit_$ty>](result)
                 }
             } else {
                 unexpected_token!($l, "<number>")
@@ -191,70 +191,70 @@ impl<'de: 'a, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     where
         V: Visitor<'de>,
     {
-        visit_number!(self.lexer, Integer, i8)
+        visit_number!(self.lexer, Integer, i8, visitor)
     }
 
     fn deserialize_i16<V>(self, visitor: V) -> Result<<V as Visitor<'de>>::Value>
     where
         V: Visitor<'de>,
     {
-        visit_number!(self.lexer, Integer, i16)
+        visit_number!(self.lexer, Integer, i16, visitor)
     }
 
     fn deserialize_i32<V>(self, visitor: V) -> Result<<V as Visitor<'de>>::Value>
     where
         V: Visitor<'de>,
     {
-        visit_number!(self.lexer, Integer, i32)
+        visit_number!(self.lexer, Integer, i32, visitor)
     }
 
     fn deserialize_i64<V>(self, visitor: V) -> Result<<V as Visitor<'de>>::Value>
     where
         V: Visitor<'de>,
     {
-        visit_number!(self.lexer, Integer, i64)
+        visit_number!(self.lexer, Integer, i64, visitor)
     }
 
     fn deserialize_u8<V>(self, visitor: V) -> Result<<V as Visitor<'de>>::Value>
     where
         V: Visitor<'de>,
     {
-        visit_number!(self.lexer, Integer, u8)
+        visit_number!(self.lexer, Integer, u8, visitor)
     }
 
     fn deserialize_u16<V>(self, visitor: V) -> Result<<V as Visitor<'de>>::Value>
     where
         V: Visitor<'de>,
     {
-        visit_number!(self.lexer, Integer, u16)
+        visit_number!(self.lexer, Integer, u16, visitor)
     }
 
     fn deserialize_u32<V>(self, visitor: V) -> Result<<V as Visitor<'de>>::Value>
     where
         V: Visitor<'de>,
     {
-        visit_number!(self.lexer, Integer, u32)
+        visit_number!(self.lexer, Integer, u32, visitor)
     }
 
     fn deserialize_u64<V>(self, visitor: V) -> Result<<V as Visitor<'de>>::Value>
     where
         V: Visitor<'de>,
     {
-        visit_number!(self.lexer, Integer, u64)
+        visit_number!(self.lexer, Integer, u64, visitor)
     }
 
     fn deserialize_f32<V>(self, visitor: V) -> Result<<V as Visitor<'de>>::Value>
     where
         V: Visitor<'de>,
     {
-        visit_number!(self.lexer, Float, f32)
+        visit_number!(self.lexer, Float, f32, visitor)
     }
 
     fn deserialize_f64<V>(self, visitor: V) -> Result<<V as Visitor<'de>>::Value>
     where
         V: Visitor<'de>,
     {
-        visit_number!(self.lexer, Float, f64)
+        visit_number!(self.lexer, Float, f64, visitor)
     }
 
     fn deserialize_char<V>(self, visitor: V) -> Result<<V as Visitor<'de>>::Value>
