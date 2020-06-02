@@ -49,7 +49,7 @@ pub(crate) enum Token {
     #[token = "/*"]
     #[callback = "ignore_comments"]
     #[error]
-    UnexpectedToken,
+    Unexpected,
     UnclosedMultilineComment,
 }
 

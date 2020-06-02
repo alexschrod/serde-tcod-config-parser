@@ -1,6 +1,5 @@
 use crate::lexer::Token;
 use logos::Lexer;
-use paste;
 use serde::de::Error as DeError;
 use serde::de::{self, Visitor};
 use serde::forward_to_deserialize_any;
