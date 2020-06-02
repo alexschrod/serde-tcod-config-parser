@@ -30,7 +30,9 @@ impl<'de: 'a, 'a> de::MapAccess<'de> for StructInternalAccess<'a, 'de> {
         K: de::DeserializeSeed<'de>,
     {
         if self.instance_name.is_some() {
-            return seed.deserialize("instance_name".into_deserializer()).map(Some);
+            return seed
+                .deserialize("instance_name".into_deserializer())
+                .map(Some);
         }
 
         if self.de.lexer.token == Token::BraceClose {

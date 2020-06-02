@@ -27,6 +27,8 @@
 //! irrelevant. While serde is very powerful, there are some limitations that I decided to enforce
 //! just to make my job easier. In particular, when a type has multiple inner structs, e.g.
 //! ```
+//! # use serde_derive::Deserialize;
+//!
 //! #[derive(Deserialize)]
 //! #[serde(rename = "outer")]
 //! struct Outer {

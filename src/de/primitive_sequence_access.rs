@@ -25,7 +25,7 @@ impl<'de: 'a, 'a> de::SeqAccess<'de> for PrimitiveSeqAccess<'a, 'de> {
         match self.de.lexer.token {
             Token::Text | Token::Integer | Token::Float | Token::Char | Token::BracketOpen => {
                 let result = seed.deserialize(&mut *self.de).map(Some);
-                if result.is_err(){
+                if result.is_err() {
                     return result;
                 }
 
